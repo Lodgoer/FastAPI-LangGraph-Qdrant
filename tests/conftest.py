@@ -19,6 +19,6 @@ def fake_services():
         "embeddings": embeddings,
         "vector_store": vector_store,
         "state_store": state_store,
-        "document_service": DocumentService(vector_store, state_store),
+        "document_service": DocumentService(vector_store, state_store, embeddings),
         "query_service": QueryService(workflow_engine),
     }

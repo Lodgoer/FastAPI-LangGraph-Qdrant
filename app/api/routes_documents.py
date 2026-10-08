@@ -1,14 +1,12 @@
 from typing import List
-from datetime import datetime, UTC
 import io
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from PyPDF2 import PdfReader
 
 from app.api.schemas import DocumentInput
-from app.api.deps import get_document_service, get_container
+from app.api.deps import get_document_service
 from app.application.services.document_service import DocumentService
-from app.core.container import AppContainer
 
 router = APIRouter(tags=["documents"])
 
@@ -16,40 +14,23 @@ router = APIRouter(tags=["documents"])
 @router.post("/ingest")
 async def ingest_document(
     doc: DocumentInput,
-    container: AppContainer = Depends(get_container),
     document_service: DocumentService = Depends(get_document_service),
 ):
     try:
-        vector = container.embeddings.embed(doc.content)
         doc_id = await document_service.ingest_document(doc.content, doc.metadata or {})
-        payload = {
-            "content": doc.content,
-            "metadata": doc.metadata or {},
-            "ingested_at": datetime.now(UTC).isoformat(),
-        }
-        await document_service.ingest_with_vector(doc_id, vector, payload)
         return {"id": doc_id, "message": "Document ingested successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ingestion failed: {e}")
 
-
 @router.post("/batch_ingest")
 async def batch_ingest(
     documents: List[DocumentInput],
-    container: AppContainer = Depends(get_container),
     document_service: DocumentService = Depends(get_document_service),
 ):
     results = []
     for doc in documents:
         try:
-            vector = container.embeddings.embed(doc.content)
             doc_id = await document_service.ingest_document(doc.content, doc.metadata or {})
-            payload = {
-                "content": doc.content,
-                "metadata": doc.metadata or {},
-                "ingested_at": datetime.now(UTC).isoformat(),
-            }
-            await document_service.ingest_with_vector(doc_id, vector, payload)
             results.append({"id": doc_id, "status": "success"})
         except Exception as e:
             results.append({"status": "error", "error": str(e)})
@@ -71,7 +52,6 @@ async def list_documents(
 @router.post("/upload/pdf")
 async def upload_pdf(
     file: UploadFile = File(...),
-    container: AppContainer = Depends(get_container),
     document_service: DocumentService = Depends(get_document_service),
 ):
     """
@@ -113,16 +93,7 @@ async def upload_pdf(
                     "content_type": "application/pdf"
                 }
                 
-                # Generate embedding and ingest
-                vector = container.embeddings.embed(text)
                 doc_id = await document_service.ingest_document(text, metadata)
-                payload = {
-                    "content": text,
-                    "metadata": metadata,
-                    "ingested_at": datetime.now(UTC).isoformat(),
-                }
-                await document_service.ingest_with_vector(doc_id, vector, payload)
-                
                 results.append({
                     "page": page_num,
                     "id": doc_id,

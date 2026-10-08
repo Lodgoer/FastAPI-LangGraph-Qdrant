@@ -66,6 +66,8 @@ def build_container() -> AppContainer:
     document_service = DocumentService(
         vector_store=vector_store,
         state_store=state_store,
+        embeddings=embeddings,
+
     )
     query_service = QueryService(workflow_engine=workflow_engine)
     counter_service = CounterService()
