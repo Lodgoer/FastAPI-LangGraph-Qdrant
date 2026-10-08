@@ -5,3 +5,5 @@ langgraph
 pydantic-settings==2.6.0
 pydantic==2.8.0
 typing-extensions>=4.7.0
+PyPDF2>=3.0.0
+python-multipart>=0.0.9
